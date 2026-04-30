@@ -121,7 +121,7 @@ guiless-search --backends google
 |---|---|---|
 | `HOST` | `127.0.0.1` | Listen address |
 | `PORT` | `8565` | Listen port |
-| `BACKENDS` | `google,bing,duckduckgo` | Enabled backends (comma-separated, order = fallback priority) |
+| `BACKENDS` | `google,duckduckgo,bing` | Enabled backends (comma-separated, order = fallback priority) |
 | `DEFAULT_BACKEND` | `google` | Default backend for `/search` |
 | `SEARCH_MODE` | `fallback` | `single` or `fallback` |
 | `SEARCH_INTERVAL` | `1` | Minimum seconds between searches per engine; random jitter of 0-50% is added automatically |
@@ -141,7 +141,7 @@ guiless-search --backends google
 ```
 --host HOST                 Listen address (default: 127.0.0.1)
 --port PORT                 Listen port (default: 8565)
---backends LIST             Comma-separated backends (default: google,bing,duckduckgo)
+--backends LIST             Comma-separated backends (default: google,duckduckgo,bing)
 --default-backend NAME      Default backend (default: google)
 --search-mode MODE          single or fallback (default: fallback)
 --search-interval N         Minimum seconds between searches per engine (default: 1)

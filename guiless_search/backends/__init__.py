@@ -9,8 +9,8 @@ log = logging.getLogger("guiless-search")
 
 _ENGINE_MAP: dict[str, type[SearchEngine]] = {
     "google": GoogleEngine,
-    "bing": BingEngine,
     "duckduckgo": DuckDuckGoEngine,
+    "bing": BingEngine,
 }
 
 AVAILABLE_BACKENDS = list(_ENGINE_MAP.keys())

@@ -62,7 +62,7 @@ def main():
     )
     parser.add_argument(
         "--backends", default=None,
-        help="Comma-separated list of backends to enable (default: google,bing,duckduckgo)",
+        help="Comma-separated list of backends to enable (default: google,duckduckgo,bing)",
     )
     parser.add_argument(
         "--default-backend", default=None,

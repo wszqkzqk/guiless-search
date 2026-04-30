@@ -7,7 +7,7 @@ USER_AGENT = os.environ.get("USER_AGENT", "")
 API_KEY = os.environ.get("API_KEY", "")
 SEARCH_INTERVAL = float(os.environ.get("SEARCH_INTERVAL", "1"))
 SEARCH_MODE = os.environ.get("SEARCH_MODE", "fallback")  # single | fallback
-BACKENDS = os.environ.get("BACKENDS", "google,bing,duckduckgo")
+BACKENDS = os.environ.get("BACKENDS", "google,duckduckgo,bing")
 DEFAULT_BACKEND = os.environ.get("DEFAULT_BACKEND", "google")
 
 HOST = os.environ.get("HOST", "127.0.0.1")

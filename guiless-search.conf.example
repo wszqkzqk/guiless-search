@@ -8,7 +8,7 @@ HOST=127.0.0.1
 PORT=8565
 
 # Comma-separated list of backends to enable (in fallback order)
-BACKENDS=google,bing,duckduckgo
+BACKENDS=google,duckduckgo,bing
 
 # Default backend for /search endpoint
 DEFAULT_BACKEND=google
