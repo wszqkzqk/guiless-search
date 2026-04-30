@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Arch Linux package build artifacts
+src/
+pkg/
+guiless-search/
+*.pkg.tar
+*.pkg.tar.*

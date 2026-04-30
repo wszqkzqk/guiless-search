@@ -1,0 +1,42 @@
+# Configuration file for GUI-Less Search
+# Located at /etc/guiless-search.conf
+# Enable and start the service with:
+#   systemctl enable --now guiless-search
+
+# Listen address and port
+HOST=127.0.0.1
+PORT=8565
+
+# Comma-separated list of backends to enable (in fallback order)
+BACKENDS=google,bing,duckduckgo
+
+# Default backend for /search endpoint
+DEFAULT_BACKEND=google
+
+# Search mode: single (one backend) or fallback (try in order)
+SEARCH_MODE=fallback
+
+# Custom User-Agent (optional, default: auto-detected from WebEngine)
+#USER_AGENT=
+
+# Minimum seconds between searches per engine (random jitter of 0-50% added automatically)
+SEARCH_INTERVAL=1
+
+# API key for Bearer token authentication (optional)
+# If set, clients must send "Authorization: Bearer <key>" header.
+# If empty or unset, no authentication is required.
+#API_KEY=
+
+# ── DuckDuckGo ──
+#DDG_BASE_URL=https://html.duckduckgo.com/html
+#DDG_REGION=
+
+# ── Google ──
+#GOOGLE_BASE_URL=https://www.google.com
+#GOOGLE_EXTRA_COOKIES={}
+
+# ── Bing ──
+#BING_BASE_URL=https://www.bing.com
+#BING_U_COOKIE=
+#BING_EXTRA_COOKIES={}
+#BING_ENSEARCH=

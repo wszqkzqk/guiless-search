@@ -1,0 +1,15 @@
+[Unit]
+Description=GUI-Less Search — Multi-backend headless web search proxy
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=io.github.wszqkzqk/guiless-search
+EnvironmentFile=-/etc/guiless-search.conf
+ExecStart=/usr/bin/guiless-search
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

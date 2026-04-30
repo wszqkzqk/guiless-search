@@ -1,0 +1,80 @@
+name: Publish to AUR
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'aur/PKGBUILD'
+      - 'src/guiless_search/**'
+      - 'guiless-search.service'
+      - 'guiless-search.conf.example'
+      - 'COPYING'
+  workflow_dispatch:
+
+env:
+  AUR_PACKAGE: guiless-search
+
+jobs:
+  aur-publish:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm git openssh
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure SSH for AUR
+        run: |
+          mkdir -p /root/.ssh
+          echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > /root/.ssh/aur
+          chmod 600 /root/.ssh/aur
+          cat > /root/.ssh/config << 'EOF'
+          Host aur.archlinux.org
+            IdentityFile /root/.ssh/aur
+            User aur
+            StrictHostKeyChecking accept-new
+          EOF
+          chmod 600 /root/.ssh/config
+
+      - name: Set up build user
+        run: |
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
+
+      - name: Build package and update pkgver
+        run: |
+          mkdir -p /tmp/aur-build
+          cp aur/PKGBUILD /tmp/aur-build/
+          chown -R builder:builder /tmp/aur-build
+          cd /tmp/aur-build
+          su builder -c 'makepkg --syncdeps --noconfirm --clean'
+          su builder -c 'makepkg --printsrcinfo' > .SRCINFO
+          echo "Updated pkgver: $(grep '^pkgver=' PKGBUILD)"
+
+      - name: Push to AUR
+        run: |
+          git config --global user.name "${{ secrets.AUR_USERNAME }}"
+          git config --global user.email "${{ secrets.AUR_EMAIL }}"
+
+          git clone ssh://aur@aur.archlinux.org/${AUR_PACKAGE}.git /tmp/aur-repo || {
+            mkdir -p /tmp/aur-repo
+            cd /tmp/aur-repo
+            git init
+            git remote add origin ssh://aur@aur.archlinux.org/${AUR_PACKAGE}.git
+          }
+
+          cd /tmp/aur-repo
+          cp /tmp/aur-build/PKGBUILD .
+          cp /tmp/aur-build/.SRCINFO .
+
+          git add PKGBUILD .SRCINFO
+          if git diff --cached --quiet; then
+            echo "No changes to push"
+          else
+            git commit -m "Update to $(git -C "${GITHUB_WORKSPACE}" rev-parse --short HEAD)"
+            git push origin master
+          fi
