@@ -62,7 +62,7 @@ def main():
     )
     parser.add_argument(
         "--backends", default=None,
-        help="Comma-separated list of backends to enable (default: google,duckduckgo,bing)",
+        help="Comma-separated list of backends to enable (default: google,duckduckgo,sogou,bing)",
     )
     parser.add_argument(
         "--default-backend", default=None,
@@ -98,6 +98,7 @@ def main():
     parser.add_argument("--bing-u-cookie", default=None)
     parser.add_argument("--bing-cookies", default=None)
     parser.add_argument("--bing-ensearch", default=None)
+    parser.add_argument("--sogou-base-url", default=None)
 
     args = parser.parse_args()
 
@@ -136,6 +137,8 @@ def main():
         config.BING_EXTRA_COOKIES = args.bing_cookies
     if args.bing_ensearch is not None:
         config.BING_ENSEARCH = args.bing_ensearch.strip()
+    if args.sogou_base_url is not None:
+        config.SOGOU_BASE_URL = args.sogou_base_url.rstrip("/")
 
     # ── Parse backend list ──
     backend_names = [b.strip() for b in config.BACKENDS.split(",") if b.strip()]

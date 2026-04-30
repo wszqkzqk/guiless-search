@@ -7,7 +7,7 @@ USER_AGENT = os.environ.get("USER_AGENT", "")
 API_KEY = os.environ.get("API_KEY", "")
 SEARCH_INTERVAL = float(os.environ.get("SEARCH_INTERVAL", "1"))
 SEARCH_MODE = os.environ.get("SEARCH_MODE", "fallback")  # single | fallback
-BACKENDS = os.environ.get("BACKENDS", "google,duckduckgo,bing")
+BACKENDS = os.environ.get("BACKENDS", "google,duckduckgo,sogou,bing")
 DEFAULT_BACKEND = os.environ.get("DEFAULT_BACKEND", "google")
 
 HOST = os.environ.get("HOST", "127.0.0.1")
@@ -33,3 +33,8 @@ BING_BASE_URL = os.environ.get(
 BING_U_COOKIE = os.environ.get("BING_U_COOKIE", "")
 BING_EXTRA_COOKIES = os.environ.get("BING_EXTRA_COOKIES", "")
 BING_ENSEARCH = os.environ.get("BING_ENSEARCH", "").strip()
+
+# ── Sogou ───────────────────────────────────────────────────────────────────
+SOGOU_BASE_URL = os.environ.get(
+    "SOGOU_BASE_URL", "https://www.sogou.com",
+).rstrip("/")

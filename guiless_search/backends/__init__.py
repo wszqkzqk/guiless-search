@@ -4,11 +4,13 @@ from .base import SearchEngine
 from .duckduckgo import DuckDuckGoEngine
 from .google import GoogleEngine
 from .bing import BingEngine
+from .sogou import SogouEngine
 
 log = logging.getLogger("guiless-search")
 
 _ENGINE_MAP: dict[str, type[SearchEngine]] = {
     "google": GoogleEngine,
+    "sogou": SogouEngine,
     "duckduckgo": DuckDuckGoEngine,
     "bing": BingEngine,
 }

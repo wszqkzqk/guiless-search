@@ -8,7 +8,7 @@ HOST=127.0.0.1
 PORT=8565
 
 # Comma-separated list of backends to enable (in fallback order)
-BACKENDS=google,duckduckgo,bing
+BACKENDS=google,duckduckgo,sogou,bing
 
 # Default backend for /search endpoint
 DEFAULT_BACKEND=google
@@ -40,3 +40,6 @@ SEARCH_INTERVAL=1
 #BING_U_COOKIE=
 #BING_EXTRA_COOKIES={}
 #BING_ENSEARCH=
+
+# ── Sogou ──
+#SOGOU_BASE_URL=https://www.sogou.com

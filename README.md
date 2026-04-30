@@ -2,7 +2,7 @@
 
 An unofficial multi-backend tool for accessing web search results in environments **without a graphical user interface**, built for personal study and research on headless information retrieval.
 
-In many server, container, or embedded environments there is no desktop or browser available, yet users still need to look up information on the web. This tool wraps Qt6 WebEngine (PySide6) as a headless Chromium engine and exposes a minimal HTTP API so that users can query Google, Bing, and DuckDuckGo via `curl` or similar command-line utilities — all from a single service.
+In many server, container, or embedded environments there is no desktop or browser available, yet users still need to look up information on the web. This tool wraps Qt6 WebEngine (PySide6) as a headless Chromium engine and exposes a minimal HTTP API so that users can query Google, DuckDuckGo, Sogou, and Bing via `curl` or similar command-line utilities — all from a single service.
 
 Because no result links are fed back to the search engines, the tool does not leak which results the user actually visited, offering a degree of privacy protection compared to using a regular browser.
 
@@ -38,7 +38,7 @@ The service listens on `127.0.0.1:8565` by default. You can then query it via `c
 # Start the service (headless, no display needed)
 guiless-search
 
-# Enable only Google and DuckDuckGo (exclude Bing)
+# Enable only Google and DuckDuckGo (exclude Sogou and Bing)
 guiless-search --backends google,duckduckgo
 
 # Custom profile directory
@@ -47,7 +47,7 @@ guiless-search --profile-dir /path/to/profile
 
 ## Features
 
-- **Multiple search backends**: Google, Bing, DuckDuckGo — all from a single service
+- **Multiple search backends**: Google, DuckDuckGo, Sogou, Bing — all from a single service
 - **Fallback mode**: automatically tries the next backend if the previous one returns no results
 - **Backend selection**: enable or disable any backend, configure their priority order
 - **Unified API**: single HTTP endpoint for all backends
@@ -105,7 +105,7 @@ Uses only the `DEFAULT_BACKEND`. No fallback.
 You control which backends are active and their fallback priority via the `BACKENDS` setting:
 
 ```bash
-# Google first, then DuckDuckGo, no Bing
+# Google first, then DuckDuckGo
 guiless-search --backends google,duckduckgo --default-backend google
 
 # DuckDuckGo first, then Google
@@ -113,6 +113,9 @@ guiless-search --backends duckduckgo,google --default-backend duckduckgo
 
 # Only Google
 guiless-search --backends google
+
+# Exclude Bing, keep Sogou as fallback
+guiless-search --backends google,duckduckgo,sogou
 ```
 
 ## Environment Variables
@@ -121,7 +124,7 @@ guiless-search --backends google
 |---|---|---|
 | `HOST` | `127.0.0.1` | Listen address |
 | `PORT` | `8565` | Listen port |
-| `BACKENDS` | `google,duckduckgo,bing` | Enabled backends (comma-separated, order = fallback priority) |
+| `BACKENDS` | `google,duckduckgo,sogou,bing` | Enabled backends (comma-separated, order = fallback priority) |
 | `DEFAULT_BACKEND` | `google` | Default backend for `/search` |
 | `SEARCH_MODE` | `fallback` | `single` or `fallback` |
 | `SEARCH_INTERVAL` | `1` | Minimum seconds between searches per engine; random jitter of 0-50% is added automatically |
@@ -135,13 +138,14 @@ guiless-search --backends google
 | `BING_ENSEARCH` | (auto) | `1`=force international, `0`=force domestic on cn.bing.com, unset=adaptive |
 | `DDG_BASE_URL` | `https://html.duckduckgo.com/html` | Base URL for DuckDuckGo search (HTML no-JS endpoint) |
 | `DDG_REGION` | (auto) | Region code (e.g. `us-en`, `wt-wt` for global) |
+| `SOGOU_BASE_URL` | `https://www.sogou.com` | Base URL for Sogou search |
 
 ## Command-Line Options
 
 ```
 --host HOST                 Listen address (default: 127.0.0.1)
 --port PORT                 Listen port (default: 8565)
---backends LIST             Comma-separated backends (default: google,duckduckgo,bing)
+--backends LIST             Comma-separated backends (default: google,duckduckgo,sogou,bing)
 --default-backend NAME      Default backend (default: google)
 --search-mode MODE          single or fallback (default: fallback)
 --search-interval N         Minimum seconds between searches per engine (default: 1)
@@ -156,6 +160,7 @@ guiless-search --backends google
 --bing-u-cookie COOKIE      Bing _U cookie
 --bing-cookies JSON         Extra cookies as JSON
 --bing-ensearch VALUE       1=intl, 0=local, auto
+--sogou-base-url URL        Sogou base URL
 ```
 
 ## GDPR Consent Handling
@@ -222,7 +227,7 @@ The built-in MCP endpoint (`/mcp`) reuses the same running server process. No ex
 
 Available MCP tool:
 - `search_web` with input `{ "query": "...", "count": 5, "backend": "auto" }`
-  - `backend`: `"auto"`, `"google"`, `"bing"`, or `"duckduckgo"`
+  - `backend`: `"auto"`, `"google"`, `"duckduckgo"`, `"sogou"`, or `"bing"`
   - `"auto"` uses the configured fallback order
 - Returns rendered Markdown text with search results
 
@@ -297,7 +302,7 @@ sudo systemctl enable --now guiless-search
 
 ## Known Limitations
 
-- **Results per page**: Google returns up to 10 organic results per page. Bing and DuckDuckGo support up to 30. Pagination for more results is not yet supported.
+- **Results per page**: Google returns up to 10 organic results per page. DuckDuckGo, Sogou, and Bing support up to 30. Pagination for more results is not yet supported.
 - **CAPTCHA**: Search engines may show CAPTCHA challenges for datacenter IPs or high request rates. This cannot be solved automatically.
 - **Selector stability**: CSS class names on search result pages are obfuscated and may change with frontend updates. The extraction logic uses multiple fallback selectors to mitigate this.
 - **Bing routing**: In some network environments, Bing may return non-search content instead of actual results due to regional routing or cookie-dependent access controls. You can exclude Bing via `--backends` if it is unreliable in your environment.
@@ -308,22 +313,23 @@ This project is provided **for personal study and research purposes only**. It i
 
 **For production deployment, automated workflows, or large-scale usage, please use official search APIs or services:**
 - Google: [Custom Search JSON API](https://developers.google.com/custom-search/v1/overview)
-- Bing: [Grounding with Bing Search API](https://www.microsoft.com/en-us/bing/apis)
 - DuckDuckGo: Official Instant Answer API or HTML endpoint terms
+- Bing: [Grounding with Bing Search API](https://www.microsoft.com/en-us/bing/apis)
 
 This tool is not a substitute for official APIs and should not be used as such.
 
-It is the user's sole responsibility to comply with all applicable laws and the terms of service of any third-party services accessed through this software. The author does **not** encourage or endorse any use that violates the Terms of Service of Google, Microsoft, or Duck Duck Go, Inc.
+It is the user's sole responsibility to comply with all applicable laws and the terms of service of any third-party services accessed through this software. The author does **not** encourage or endorse any use that violates the Terms of Service of Google, Duck Duck Go, Inc., Sogou, or Microsoft.
 
 By using this software you agree that **you bear all responsibility** for ensuring your usage complies with applicable terms of service and laws.
 
 ### Trademark Disclaimer
 
 - **"Google"** is a registered trademark of Google LLC.
-- **"Bing"** is a registered trademark of Microsoft Corporation.
 - **"DuckDuckGo"** is a trademark of Duck Duck Go, Inc.
+- **"Sogou"** is a registered trademark of Sogou Inc.
+- **"Bing"** is a registered trademark of Microsoft Corporation.
 
-This project is an independent, unofficial tool and is **not** affiliated with, authorized, maintained, sponsored, or endorsed by Google LLC, Microsoft Corporation, Duck Duck Go, Inc., or any of their affiliates.
+This project is an independent, unofficial tool and is **not** affiliated with, authorized, maintained, sponsored, or endorsed by Google LLC, Duck Duck Go, Inc., Sogou Inc., Microsoft Corporation, or any of their affiliates.
 
 ## License
 
