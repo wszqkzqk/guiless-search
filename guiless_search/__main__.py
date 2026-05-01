@@ -70,8 +70,12 @@ def main():
     )
     parser.add_argument(
         "--search-mode", default=None,
-        choices=["single", "fallback"],
-        help="Search mode: single or fallback (default: fallback)",
+        choices=["single", "fallback", "parallel"],
+        help="Search mode: single, fallback, or parallel (default: parallel)",
+    )
+    parser.add_argument(
+        "--parallel-timeout", type=float, default=None,
+        help="Max seconds to wait for all parallel engines (default: 10)",
     )
     parser.add_argument(
         "--search-interval", type=float, default=None,
@@ -115,6 +119,8 @@ def main():
         config.SEARCH_MODE = args.search_mode
     if args.search_interval is not None:
         config.SEARCH_INTERVAL = args.search_interval
+    if args.parallel_timeout is not None:
+        config.PARALLEL_TIMEOUT = args.parallel_timeout
     if args.api_key is not None:
         config.API_KEY = args.api_key
     if args.profile_dir is not None:

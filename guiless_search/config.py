@@ -6,7 +6,8 @@ import os
 USER_AGENT = os.environ.get("USER_AGENT", "")
 API_KEY = os.environ.get("API_KEY", "")
 SEARCH_INTERVAL = float(os.environ.get("SEARCH_INTERVAL", "1"))
-SEARCH_MODE = os.environ.get("SEARCH_MODE", "fallback")  # single | fallback
+SEARCH_MODE = os.environ.get("SEARCH_MODE", "parallel")  # single | fallback | parallel
+PARALLEL_TIMEOUT = float(os.environ.get("PARALLEL_TIMEOUT", "10"))
 BACKENDS = os.environ.get("BACKENDS", "google,duckduckgo,sogou,bing")
 DEFAULT_BACKEND = os.environ.get("DEFAULT_BACKEND", "google")
 

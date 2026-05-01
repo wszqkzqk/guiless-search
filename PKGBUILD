@@ -3,7 +3,7 @@
 pkgname=guiless-search
 pkgver=r0.00000000.0000000
 pkgrel=1
-pkgdesc='Multi-backend headless web search proxy (Google, Bing, DuckDuckGo)'
+pkgdesc='Multi-backend headless web search proxy'
 arch=('any')
 url='https://github.com/wszqkzqk/guiless-search'
 license=('GPL-3.0-or-later')

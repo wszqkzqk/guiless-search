@@ -49,6 +49,7 @@ guiless-search --profile-dir /path/to/profile
 
 - **Multiple search backends**: Google, DuckDuckGo, Sogou, Bing — all from a single service
 - **Fallback mode**: automatically tries the next backend if the previous one returns no results
+- **Parallel mode**: queries all enabled backends concurrently, deduplicates and ranks by cross-engine agreement
 - **Backend selection**: enable or disable any backend, configure their priority order
 - **Unified API**: single HTTP endpoint for all backends
 - **MCP support**: Model Context Protocol (JSON-RPC 2.0) for AI agent integration
@@ -92,13 +93,21 @@ Response format:
 
 ## Search Modes
 
-### `fallback` (default)
+### `parallel` (default)
+
+Queries **all enabled backends concurrently**, then aggregates the results:
+
+- **Deduplicate** by normalized URL (tracking parameters are stripped).
+- **Rank** primarily by how many distinct engines returned the same URL — cross-engine agreement is the strongest trust signal against garbage results from unreliable sources.
+- **Tie-break** using the configured engine order and original position within that engine.
+
+### `fallback`
 
 Tries backends in the order listed in `BACKENDS`. If the first backend returns non-empty results, stops immediately. If it returns empty results, tries the next one in order.
 
 ### `single`
 
-Uses only the `DEFAULT_BACKEND`. No fallback.
+Uses only the `DEFAULT_BACKEND`. No fallback or aggregation.
 
 ## Backend Selection
 
@@ -126,8 +135,9 @@ guiless-search --backends google,duckduckgo,sogou
 | `PORT` | `8565` | Listen port |
 | `BACKENDS` | `google,duckduckgo,sogou,bing` | Enabled backends (comma-separated, order = fallback priority) |
 | `DEFAULT_BACKEND` | `google` | Default backend for `/search` |
-| `SEARCH_MODE` | `fallback` | `single` or `fallback` |
+| `SEARCH_MODE` | `parallel` | `single`, `fallback`, or `parallel` |
 | `SEARCH_INTERVAL` | `1` | Minimum seconds between searches per engine; random jitter of 0-50% is added automatically |
+| `PARALLEL_TIMEOUT` | `10` | Max seconds to wait for all engines in `parallel` mode |
 | `USER_AGENT` | (auto) | Custom User-Agent |
 | `API_KEY` | (empty) | API key for `Bearer` token auth; if empty, no auth required |
 | `GOOGLE_BASE_URL` | `https://www.google.com` | Base URL for Google search |
@@ -147,8 +157,9 @@ guiless-search --backends google,duckduckgo,sogou
 --port PORT                 Listen port (default: 8565)
 --backends LIST             Comma-separated backends (default: google,duckduckgo,sogou,bing)
 --default-backend NAME      Default backend (default: google)
---search-mode MODE          single or fallback (default: fallback)
+--search-mode MODE          single, fallback, or parallel (default: parallel)
 --search-interval N         Minimum seconds between searches per engine (default: 1)
+--parallel-timeout N        Max seconds to wait for all engines in parallel mode (default: 10)
 --profile-dir DIR           Custom profile directory
 --api-key KEY               API key for Bearer token auth (optional)
 --user-agent UA             Custom User-Agent string

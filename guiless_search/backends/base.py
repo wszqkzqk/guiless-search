@@ -105,11 +105,13 @@ class SearchEngine(QObject):
 
     # ── Public entry point used by the server ──
 
-    def search(self, query: str, count: int = 10) -> list[dict]:
-        """Enqueue a search request and block until results arrive (30s)."""
+    def search(
+        self, query: str, count: int = 10, timeout: float = 30.0,
+    ) -> list[dict]:
+        """Enqueue a search request and block until results arrive."""
         req = SearchRequest(query, count)
         self._search_queue.put(req)
-        if not req.done.wait(timeout=30):
+        if not req.done.wait(timeout=timeout):
             log.warning("[%s] Search timed out: '%s'", self.engine_name, query)
         return req.results
 
