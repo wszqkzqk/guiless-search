@@ -82,6 +82,10 @@ def main():
         help="Global minimum seconds between searches per engine (default: 1)",
     )
     parser.add_argument(
+        "--search-timeout", type=float, default=None,
+        help="Hard timeout (seconds) for a single search per engine (default: 45)",
+    )
+    parser.add_argument(
         "--api-key", default=None,
         help="API key for Bearer token authentication (optional)",
     )
@@ -119,6 +123,8 @@ def main():
         config.SEARCH_MODE = args.search_mode
     if args.search_interval is not None:
         config.SEARCH_INTERVAL = args.search_interval
+    if args.search_timeout is not None:
+        config.SEARCH_TIMEOUT = args.search_timeout
     if args.parallel_timeout is not None:
         config.PARALLEL_TIMEOUT = args.parallel_timeout
     if args.api_key is not None:
@@ -172,7 +178,7 @@ def main():
 
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, lambda *_: app.quit())
-    _sig_timer = QTimer()
+    _sig_timer = QTimer(app)
     _sig_timer.start(500)
     _sig_timer.timeout.connect(lambda: None)
 
@@ -187,7 +193,9 @@ def main():
         else:
             engine_order.append(name)
     for name in engine_order:
-        engines[name] = create_engine(name, profile, config.SEARCH_INTERVAL)
+        engines[name] = create_engine(
+            name, profile, config.SEARCH_INTERVAL, config.SEARCH_TIMEOUT,
+        )
 
     # Inject into handler class
     SearchHandler.engines = engines

@@ -123,6 +123,8 @@ class GoogleEngine(SearchEngine):
         return False  # we take over the flow
 
     def _on_consent_check(self, is_consent) -> None:
+        if self._current is None:
+            return
         if is_consent:
             log.info("[%s] Consent page detected, processing consent dialog", self.engine_name)
             self._page.runJavaScript(
@@ -132,6 +134,8 @@ class GoogleEngine(SearchEngine):
             self._start_probe()
 
     def _on_consent_clicked(self, clicked) -> None:
+        if self._current is None:
+            return
         if clicked:
             log.info("[%s] Consent accepted, waiting for redirect...", self.engine_name)
             QTimer.singleShot(2000, self._after_consent_redirect)
@@ -140,13 +144,16 @@ class GoogleEngine(SearchEngine):
             self._start_probe()
 
     def _after_consent_redirect(self) -> None:
-        assert self._current is not None
+        if self._current is None:
+            return
         url = self._build_search_url(self._current.query)
         self._page.loadFinished.connect(self._on_loaded_after_consent)
         self._page.load(QUrl(url))
 
     def _on_loaded_after_consent(self, ok: bool) -> None:
         self._page.loadFinished.disconnect(self._on_loaded_after_consent)
+        if self._current is None:
+            return
         if not ok:
             log.warning("[%s] Page load failed after consent", self.engine_name)
             self._finish([])

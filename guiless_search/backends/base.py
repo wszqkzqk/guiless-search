@@ -45,9 +45,11 @@ class SearchEngine(QObject):
         self,
         profile: QWebEngineProfile,
         search_interval: float = 1.0,
+        search_timeout: float = 45.0,
     ):
         super().__init__()
         self._search_interval = search_interval
+        self._search_timeout = search_timeout
         self._page = QWebEnginePage(profile, self)
         self._page.settings().setAttribute(
             QWebEngineSettings.WebAttribute.AutoLoadImages, False,
@@ -69,6 +71,7 @@ class SearchEngine(QObject):
         self._search_queue: queue.Queue[SearchRequest] = queue.Queue()
         self._current: SearchRequest | None = None
         self._last_search_time: float = 0.0
+        self._search_start_time: float = 0.0
         self._poll_count: int = 0
 
         self._timer = QTimer(self)
@@ -119,6 +122,15 @@ class SearchEngine(QObject):
 
     def _poll(self) -> None:
         if self._current is not None:
+            if (
+                self._search_start_time
+                and time.monotonic() - self._search_start_time > self._search_timeout
+            ):
+                log.warning(
+                    "[%s] Search hard-timeout after %.0fs, aborting",
+                    self.engine_name, self._search_timeout,
+                )
+                self._finish([])
             return
         try:
             self._current = self._search_queue.get_nowait()
@@ -144,6 +156,7 @@ class SearchEngine(QObject):
 
     def _navigate(self) -> None:
         assert self._current is not None
+        self._search_start_time = time.monotonic()
         url = self._build_search_url(self._current.query)
         log.info("[%s] navigate %s", self.engine_name, url)
         self._page.loadFinished.connect(self._on_loaded)
@@ -151,6 +164,8 @@ class SearchEngine(QObject):
 
     def _on_loaded(self, ok: bool) -> None:
         self._page.loadFinished.disconnect(self._on_loaded)
+        if self._current is None:
+            return
         if not ok:
             log.warning("[%s] Page load failed", self.engine_name)
             self._finish([])
@@ -170,6 +185,8 @@ class SearchEngine(QObject):
         self._page.runJavaScript(self._probe_js(), 0, self._on_probe)
 
     def _on_probe(self, n) -> None:
+        if self._current is None:
+            return
         n = int(n) if n else 0
         if n > 0:
             self._extract()
@@ -186,7 +203,8 @@ class SearchEngine(QObject):
         self._page.runJavaScript(self._extract_js(), 0, self._on_results)
 
     def _on_results(self, data) -> None:
-        assert self._current is not None
+        if self._current is None:
+            return
         results = parse_js(data)
         for r in results:
             if "link" in r:
@@ -195,9 +213,11 @@ class SearchEngine(QObject):
         self._finish(results[:count])
 
     def _finish(self, results: list[dict]) -> None:
-        assert self._current is not None
+        if self._current is None:
+            return
         req = self._current
         self._current = None
+        self._search_start_time = 0.0
         req.results = results
         req.done.set()
         log.info(

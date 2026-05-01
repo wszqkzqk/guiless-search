@@ -22,6 +22,7 @@ def create_engine(
     name: str,
     profile,
     search_interval: float = 1.0,
+    search_timeout: float = 45.0,
 ) -> SearchEngine:
     """Create a search engine instance by name."""
     cls = _ENGINE_MAP.get(name)
@@ -30,6 +31,6 @@ def create_engine(
             f"Unknown backend '{name}'. "
             f"Available: {', '.join(AVAILABLE_BACKENDS)}"
         )
-    engine = cls(profile, search_interval)
+    engine = cls(profile, search_interval, search_timeout)
     engine._inject_cookies(profile)
     return engine

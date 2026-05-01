@@ -13,6 +13,7 @@ log = logging.getLogger("guiless-search")
 
 _MCP_PROTOCOL_VERSION = "2024-11-05"
 _MCP_MAX_RESULT_CHARS = 120000
+_MAX_BODY_SIZE = 1 * 1024 * 1024  # 1 MiB
 
 
 class SearchHandler(BaseHTTPRequestHandler):
@@ -66,6 +67,9 @@ class SearchHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         if length == 0:
             self._send_json({"error": "empty body"}, 400)
+            return None
+        if length > _MAX_BODY_SIZE:
+            self._send_json({"error": "payload too large"}, 413)
             return None
         try:
             return json.loads(self.rfile.read(length))
@@ -172,6 +176,11 @@ class SearchHandler(BaseHTTPRequestHandler):
         if length == 0:
             self._send_mcp_error(
                 None, -32600, "Invalid Request", {"reason": "empty body"},
+            )
+            return
+        if length > _MAX_BODY_SIZE:
+            self._send_mcp_error(
+                None, -32600, "Invalid Request", {"reason": "payload too large"},
             )
             return
 

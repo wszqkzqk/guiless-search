@@ -14,6 +14,7 @@ DEFAULT_BACKEND = os.environ.get("DEFAULT_BACKEND", "google")
 HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "8565"))
 PROFILE_DIR = os.environ.get("PROFILE_DIR", "")
+SEARCH_TIMEOUT = float(os.environ.get("SEARCH_TIMEOUT", "45"))
 
 # ── DuckDuckGo ───────────────────────────────────────────────────────────────
 DDG_BASE_URL = os.environ.get(
