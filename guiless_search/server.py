@@ -79,7 +79,7 @@ class SearchHandler(BaseHTTPRequestHandler):
     def _mcp_tools() -> list[dict]:
         return [
             {
-                "name": "search_web",
+                "name": "query",
                 "description": (
                     "Search the web and return a structured list of results "
                     "including title, URL, and snippet. Supports multiple "
@@ -120,7 +120,7 @@ class SearchHandler(BaseHTTPRequestHandler):
             },
         ]
 
-    def _mcp_call_search_web(self, params: dict) -> dict:
+    def _mcp_call_query(self, params: dict) -> dict:
         arguments = params.get("arguments", {})
         if not isinstance(arguments, dict):
             raise ValueError("arguments must be an object")
@@ -242,7 +242,7 @@ class SearchHandler(BaseHTTPRequestHandler):
 
         if method == "tools/call":
             try:
-                result = self._mcp_call_search_web(params)
+                result = self._mcp_call_query(params)
             except ValueError as e:
                 self._send_mcp_error(
                     request_id, -32602, "Invalid params",
