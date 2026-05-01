@@ -120,7 +120,7 @@ class GoogleEngine(SearchEngine):
         self._page.runJavaScript(
             _CONSENT_DETECT_JS, 0, self._on_consent_check,
         )
-        return False  # we take over the flow
+        return False
 
     def _on_consent_check(self, is_consent) -> None:
         if self._current is None:
@@ -147,8 +147,9 @@ class GoogleEngine(SearchEngine):
         if self._current is None:
             return
         url = self._build_search_url(self._current.query)
-        self._page.loadFinished.connect(self._on_loaded_after_consent)
-        self._page.load(QUrl(url))
+        page = self._ensure_page()
+        page.loadFinished.connect(self._on_loaded_after_consent)
+        page.load(QUrl(url))
 
     def _on_loaded_after_consent(self, ok: bool) -> None:
         self._page.loadFinished.disconnect(self._on_loaded_after_consent)

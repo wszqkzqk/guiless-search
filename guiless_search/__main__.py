@@ -86,6 +86,10 @@ def main():
         help="Hard timeout (seconds) for a single search per engine (default: 45)",
     )
     parser.add_argument(
+        "--engine-idle-timeout", type=float, default=None,
+        help="Release QWebEnginePage after N seconds of inactivity (default: 300, 0=never release)",
+    )
+    parser.add_argument(
         "--api-key", default=None,
         help="API key for Bearer token authentication (optional)",
     )
@@ -125,6 +129,8 @@ def main():
         config.SEARCH_INTERVAL = args.search_interval
     if args.search_timeout is not None:
         config.SEARCH_TIMEOUT = args.search_timeout
+    if args.engine_idle_timeout is not None:
+        config.ENGINE_IDLE_TIMEOUT = args.engine_idle_timeout
     if args.parallel_timeout is not None:
         config.PARALLEL_TIMEOUT = args.parallel_timeout
     if args.api_key is not None:
@@ -195,6 +201,7 @@ def main():
     for name in engine_order:
         engines[name] = create_engine(
             name, profile, config.SEARCH_INTERVAL, config.SEARCH_TIMEOUT,
+            config.ENGINE_IDLE_TIMEOUT,
         )
 
     # Inject into handler class
@@ -207,11 +214,12 @@ def main():
 
     log.info("Listening on http://%s:%d", config.HOST, config.PORT)
     log.info(
-        "  backends: %s, default: %s, mode: %s, interval: %.1fs, auth: %s",
+        "  backends: %s, default: %s, mode: %s, interval: %.1fs, idle_timeout: %.0fs, auth: %s",
         ",".join(backend_names),
         config.DEFAULT_BACKEND,
         config.SEARCH_MODE,
         config.SEARCH_INTERVAL,
+        config.ENGINE_IDLE_TIMEOUT,
         "enabled" if config.API_KEY else "disabled",
     )
 

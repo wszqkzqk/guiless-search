@@ -56,6 +56,7 @@ guiless-search --profile-dir /path/to/profile
 - **Headless browser normalization**: normalizes browser fingerprint for consistent rendering in offscreen environments
 - **Rate limiting**: configurable per-engine intervals with random jitter
 - **Privacy-friendly URL handling**: unwraps click-tracking redirects to present the actual destination URLs
+- **Memory-efficient lazy loading**: QWebEnginePage instances are created on demand and released after a configurable idle timeout, reducing memory usage when engines are not actively searching
 
 ## Usage Examples
 
@@ -138,6 +139,7 @@ guiless-search --backends google,duckduckgo,sogou
 | `SEARCH_MODE` | `parallel` | `single`, `fallback`, or `parallel` |
 | `SEARCH_INTERVAL` | `1` | Minimum seconds between searches per engine; random jitter of 0-50% is added automatically |
 | `PARALLEL_TIMEOUT` | `10` | Max seconds to wait for all engines in `parallel` mode |
+| `ENGINE_IDLE_TIMEOUT` | `300` | Seconds of inactivity before releasing the QWebEnginePage to free memory; 0 keeps pages alive permanently |
 | `USER_AGENT` | (auto) | Custom User-Agent |
 | `API_KEY` | (empty) | API key for `Bearer` token auth; if empty, no auth required |
 | `GOOGLE_BASE_URL` | `https://www.google.com` | Base URL for Google search |
@@ -160,6 +162,7 @@ guiless-search --backends google,duckduckgo,sogou
 --search-mode MODE          single, fallback, or parallel (default: parallel)
 --search-interval N         Minimum seconds between searches per engine (default: 1)
 --parallel-timeout N        Max seconds to wait for all engines in parallel mode (default: 10)
+--engine-idle-timeout N     Release QWebEnginePage after N seconds idle (default: 300, 0=never)
 --profile-dir DIR           Custom profile directory
 --api-key KEY               API key for Bearer token auth (optional)
 --user-agent UA             Custom User-Agent string

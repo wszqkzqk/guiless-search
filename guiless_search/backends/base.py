@@ -21,16 +21,22 @@ log = logging.getLogger("guiless-search")
 class SearchEngine(QObject):
     """Base class for headless search engines.
 
-    Subclasses must implement:
+    Subclasses implement:
         _build_search_url(query) -> str
         _probe_js() -> str
         _extract_js() -> str
         _decode_redirect(url) -> str
         _max_results() -> int
 
-    The common queue-poll → rate-limit → navigate → load-finish pipeline is
-    handled here; the subclass controls what happens after the page loads via
+    The queue-poll → rate-limit → navigate → load-finish pipeline is
+    handled here; subclasses control page-load behaviour via
     ``_on_page_loaded``.
+
+    The QWebEnginePage is created lazily on the first search and
+    released via ``LifecycleState.Discarded`` after ``idle_timeout``
+    seconds of inactivity.  Discarded terminates the Chromium renderer
+    process without calling ``deleteLater``, avoiding the known Qt
+    object-lifecycle memory leak.
     """
 
     # ── Class-level attributes for the registry ──
@@ -46,27 +52,14 @@ class SearchEngine(QObject):
         profile: QWebEngineProfile,
         search_interval: float = 1.0,
         search_timeout: float = 45.0,
+        idle_timeout: float = 300.0,
     ):
         super().__init__()
+        self._profile = profile
         self._search_interval = search_interval
         self._search_timeout = search_timeout
-        self._page = QWebEnginePage(profile, self)
-        self._page.settings().setAttribute(
-            QWebEngineSettings.WebAttribute.AutoLoadImages, False,
-        )
-        self._page.settings().setAttribute(
-            QWebEngineSettings.WebAttribute.PluginsEnabled, False,
-        )
-
-        # Inject browser-normalization JS at DocumentCreation in MainWorld
-        script = QWebEngineScript()
-        script.setSourceCode(_BROWSER_INIT_JS)
-        script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
-        script.setInjectionPoint(
-            QWebEngineScript.InjectionPoint.DocumentCreation,
-        )
-        script.setRunsOnSubFrames(True)
-        self._page.scripts().insert(script)
+        self._idle_timeout = idle_timeout
+        self._page: QWebEnginePage | None = None
 
         self._search_queue: queue.Queue[SearchRequest] = queue.Queue()
         self._current: SearchRequest | None = None
@@ -77,6 +70,11 @@ class SearchEngine(QObject):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._poll)
         self._timer.start(50)
+
+        # Single-shot idle timer: releases the page after prolonged inactivity.
+        self._idle_timer = QTimer(self)
+        self._idle_timer.setSingleShot(True)
+        self._idle_timer.timeout.connect(self._release_page)
 
     # ── Subclass MUST implement ──
 
@@ -94,6 +92,57 @@ class SearchEngine(QObject):
 
     def _max_results(self) -> int:
         raise NotImplementedError
+
+    # ── Page lifecycle ──
+
+    def _ensure_page(self) -> QWebEnginePage:
+        """Return a usable QWebEnginePage, creating it on first call.
+
+        If the page was previously discarded, transitions it back to
+        ``Active``, which spawns a fresh renderer process and internally
+        navigates to ``about:blank`` — the subsequent ``page.load()`` in
+        ``_navigate`` supersedes that.
+        """
+        if self._page is None:
+            log.info("[%s] Creating WebEnginePage (lazy)", self.engine_name)
+            self._page = QWebEnginePage(self._profile, self)
+            self._page.settings().setAttribute(
+                QWebEngineSettings.WebAttribute.AutoLoadImages, False,
+            )
+            self._page.settings().setAttribute(
+                QWebEngineSettings.WebAttribute.PluginsEnabled, False,
+            )
+            script = QWebEngineScript()
+            script.setSourceCode(_BROWSER_INIT_JS)
+            script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+            script.setInjectionPoint(
+                QWebEngineScript.InjectionPoint.DocumentCreation,
+            )
+            script.setRunsOnSubFrames(True)
+            self._page.scripts().insert(script)
+            return self._page
+        if self._page.lifecycleState() != QWebEnginePage.LifecycleState.Active:
+            log.info(
+                "[%s] Reactivating WebEnginePage from %s",
+                self.engine_name, self._page.lifecycleState(),
+            )
+            self._page.setLifecycleState(QWebEnginePage.LifecycleState.Active)
+        return self._page
+
+    def _release_page(self) -> None:
+        """Discard the page via ``LifecycleState.Discarded``.
+
+        This terminates the Chromium renderer process through Qt's own
+        API and keeps the ``QWebEnginePage`` object alive for later
+        reactivation, avoiding ``deleteLater`` entirely.
+        """
+        if self._page is None or self._current is not None:
+            return
+        log.info(
+            "[%s] Discarding WebEnginePage (idle %.0fs)",
+            self.engine_name, self._idle_timeout,
+        )
+        self._page.setLifecycleState(QWebEnginePage.LifecycleState.Discarded)
 
     # ── Optional hooks ──
 
@@ -150,21 +199,26 @@ class SearchEngine(QObject):
 
     def _start_search(self) -> None:
         assert self._current is not None
+        self._idle_timer.stop()
         self._last_search_time = time.monotonic()
         log.info("[%s] Searching: '%s'", self.engine_name, self._current.query)
         self._navigate()
 
     def _navigate(self) -> None:
         assert self._current is not None
+        page = self._ensure_page()
         self._search_start_time = time.monotonic()
         url = self._build_search_url(self._current.query)
         log.info("[%s] navigate %s", self.engine_name, url)
-        self._page.loadFinished.connect(self._on_loaded)
-        self._page.load(QUrl(url))
+        page.loadFinished.connect(self._on_loaded)
+        page.load(QUrl(url))
 
     def _on_loaded(self, ok: bool) -> None:
         self._page.loadFinished.disconnect(self._on_loaded)
         if self._current is None:
+            return
+        if self._page.url().toString() == "about:blank":
+            self._page.loadFinished.connect(self._on_loaded)
             return
         if not ok:
             log.warning("[%s] Page load failed", self.engine_name)
@@ -229,3 +283,6 @@ class SearchEngine(QObject):
                 "  [%d] %s | %s",
                 i, r.get("title", ""), r.get("link", ""),
             )
+        # Schedule page release after idle timeout.
+        if self._idle_timeout > 0:
+            self._idle_timer.start(int(self._idle_timeout * 1000))

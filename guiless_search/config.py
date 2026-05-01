@@ -15,6 +15,7 @@ HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "8565"))
 PROFILE_DIR = os.environ.get("PROFILE_DIR", "")
 SEARCH_TIMEOUT = float(os.environ.get("SEARCH_TIMEOUT", "45"))
+ENGINE_IDLE_TIMEOUT = float(os.environ.get("ENGINE_IDLE_TIMEOUT", "300"))
 
 # ── DuckDuckGo ───────────────────────────────────────────────────────────────
 DDG_BASE_URL = os.environ.get(
