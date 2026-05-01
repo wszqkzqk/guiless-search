@@ -49,8 +49,8 @@ def _decode_sogou_redirect(url: str) -> str:
             return url
         req = urllib.request.Request(url)
         req.add_header('User-Agent', 'Mozilla/5.0')
-        resp = urllib.request.urlopen(req, timeout=5)
-        html = resp.read(4096).decode('utf-8', errors='replace')
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            html = resp.read(4096).decode('utf-8', errors='replace')
         m = _REDIRECT_RE.search(html)
         if m:
             return m.group(1)
