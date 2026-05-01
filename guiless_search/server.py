@@ -83,8 +83,8 @@ class SearchHandler(BaseHTTPRequestHandler):
                 "description": (
                     "Search the web and return a structured list of results "
                     "including title, URL, and snippet. Supports multiple "
-                    "backends: google, bing, duckduckgo. When backend is "
-                    "'auto' or omitted, backends are tried in configured order."
+                    "backends: google, duckduckgo, sogou, bing. When backend "
+                    "is 'auto' or omitted, uses the configured search mode."
                 ),
                 "inputSchema": {
                     "type": "object",
@@ -106,8 +106,8 @@ class SearchHandler(BaseHTTPRequestHandler):
                             "type": "string",
                             "enum": AVAILABLE_BACKENDS + ["auto"],
                             "description": (
-                                "Search backend. 'auto' uses the configured "
-                                "fallback order. Defaults to 'auto'."
+                            "Search backend. 'auto' uses the configured "
+                            "SEARCH_MODE. Defaults to 'auto'."
                             ),
                         },
                     },

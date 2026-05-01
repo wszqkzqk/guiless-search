@@ -34,7 +34,7 @@ def search_with_fallback(
     if mode == "parallel":
         return _search_parallel(query, count, engines)
 
-    # fallback (default)
+    # fallback mode (catch-all)
     for engine in engines:
         results = engine.search(query, count)
         if results:

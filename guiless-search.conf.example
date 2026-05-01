@@ -7,14 +7,14 @@
 HOST=127.0.0.1
 PORT=8565
 
-# Comma-separated list of backends to enable (in fallback order)
+# Comma-separated list of backends to enable (order = fallback priority)
 BACKENDS=google,duckduckgo,sogou,bing
 
 # Default backend for /search endpoint
 DEFAULT_BACKEND=google
 
-# Search mode: single (one backend) or fallback (try in order)
-SEARCH_MODE=fallback
+# Search mode: single | fallback | parallel
+SEARCH_MODE=parallel
 
 # Custom User-Agent (optional, default: auto-detected from WebEngine)
 #USER_AGENT=

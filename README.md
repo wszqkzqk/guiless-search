@@ -65,7 +65,7 @@ Once the service is running, search from the command line:
 # Health check (no auth)
 curl http://localhost:8565/health
 
-# Search with fallback mode (tries backends in configured order)
+# Search with default mode (uses SEARCH_MODE, default: parallel)
 curl -s -X POST http://localhost:8565/search \
     -H "Content-Type: application/json" \
     -d '{"query": "Python tutorial"}' | python -m json.tool
@@ -239,7 +239,7 @@ The built-in MCP endpoint (`/mcp`) reuses the same running server process. No ex
 Available MCP tool:
 - `search_web` with input `{ "query": "...", "count": 5, "backend": "auto" }`
   - `backend`: `"auto"`, `"google"`, `"duckduckgo"`, `"sogou"`, or `"bing"`
-  - `"auto"` uses the configured fallback order
+  - `"auto"` uses the configured `SEARCH_MODE` (default: `parallel`)
 - Returns rendered Markdown text with search results
 
 ### Claude Code example
