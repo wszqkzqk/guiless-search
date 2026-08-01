@@ -142,6 +142,7 @@ guiless-search --backends google,duckduckgo,sogou
 | `ENGINE_IDLE_TIMEOUT` | `300` | Seconds of inactivity before releasing the QWebEnginePage to free memory; 0 keeps pages alive permanently |
 | `USER_AGENT` | (auto) | Custom User-Agent |
 | `API_KEY` | (empty) | API key for `Bearer` token auth; if empty, no auth required |
+| `PROXY` | (auto) | HTTP/HTTPS forward proxy URL; if unset, standard `http_proxy`/`https_proxy`/`all_proxy`/`no_proxy` env vars are honored |
 | `GOOGLE_BASE_URL` | `https://www.google.com` | Base URL for Google search |
 | `GOOGLE_EXTRA_COOKIES` | (empty) | Extra cookies as JSON, merged with default consent cookies |
 | `BING_BASE_URL` | `https://www.bing.com` | Base URL for Bing search |
@@ -164,6 +165,7 @@ guiless-search --backends google,duckduckgo,sogou
 --parallel-timeout N        Max seconds to wait for all engines in parallel mode (default: 10)
 --engine-idle-timeout N     Release QWebEnginePage after N seconds idle (default: 300, 0=never)
 --profile-dir DIR           Custom profile directory
+--proxy URL                 HTTP/HTTPS forward proxy (default: standard env vars)
 --api-key KEY               API key for Bearer token auth (optional)
 --user-agent UA             Custom User-Agent string
 --ddg-base-url URL          DuckDuckGo base URL

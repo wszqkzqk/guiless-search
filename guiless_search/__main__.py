@@ -43,6 +43,7 @@ from PySide6.QtWidgets import QApplication
 from . import config, __version__
 from .backends import create_engine, AVAILABLE_BACKENDS
 from .profile import build_profile, default_profile_dir
+from .proxy import apply_proxy
 from .server import SearchHandler
 
 log = logging.getLogger("guiless-search")
@@ -105,6 +106,10 @@ def main():
         help="Custom profile directory",
     )
     parser.add_argument(
+        "--proxy", default=None,
+        help="HTTP/HTTPS forward proxy URL (default: standard env vars)",
+    )
+    parser.add_argument(
         "--user-agent", default=None,
         help="Custom User-Agent string",
     )
@@ -144,6 +149,8 @@ def main():
         config.API_KEY = args.api_key
     if args.profile_dir is not None:
         config.PROFILE_DIR = args.profile_dir
+    if args.proxy is not None:
+        config.PROXY = args.proxy
     if args.user_agent is not None:
         config.USER_AGENT = args.user_agent
     if args.ddg_base_url is not None:
@@ -178,6 +185,13 @@ def main():
             config.DEFAULT_BACKEND, backend_names[0],
         )
         config.DEFAULT_BACKEND = backend_names[0]
+
+    # ── Proxy (must be applied before QtWebEngine initializes) ──
+    try:
+        proxy_summary = apply_proxy(config.PROXY)
+    except ValueError as e:
+        log.error("%s", e)
+        sys.exit(1)
 
     # ── Ensure profile dir ──
     storage = config.PROFILE_DIR or default_profile_dir("guiless-search")
@@ -220,6 +234,8 @@ def main():
     threading.Thread(target=server.serve_forever, daemon=True).start()
 
     log.info("Listening on http://%s:%d", config.HOST, config.PORT)
+    if proxy_summary:
+        log.info("  proxy: %s", proxy_summary)
     log.info(
         "  backends: %s, default: %s, mode: %s, interval: %.1fs, idle_timeout: %.0fs, auth: %s",
         ",".join(backend_names),
