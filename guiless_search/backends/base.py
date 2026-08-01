@@ -60,6 +60,8 @@ class SearchEngine(QObject):
         self._search_timeout = search_timeout
         self._idle_timeout = idle_timeout
         self._page: QWebEnginePage | None = None
+        # Whether loadFinished is currently connected to _on_loaded.
+        self._load_connected = False
 
         self._search_queue: queue.Queue[SearchRequest] = queue.Queue()
         self._current: SearchRequest | None = None
@@ -106,12 +108,15 @@ class SearchEngine(QObject):
         if self._page is None:
             log.info("[%s] Creating WebEnginePage (lazy)", self.engine_name)
             self._page = QWebEnginePage(self._profile, self)
-            self._page.settings().setAttribute(
-                QWebEngineSettings.WebAttribute.AutoLoadImages, False,
-            )
-            self._page.settings().setAttribute(
-                QWebEngineSettings.WebAttribute.PluginsEnabled, False,
-            )
+            settings = self._page.settings()
+            for attr in (
+                QWebEngineSettings.WebAttribute.AutoLoadImages,
+                QWebEngineSettings.WebAttribute.PluginsEnabled,
+                QWebEngineSettings.WebAttribute.WebGLEnabled,
+                QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled,
+                QWebEngineSettings.WebAttribute.PdfViewerEnabled,
+            ):
+                settings.setAttribute(attr, False)
             script = QWebEngineScript()
             script.setSourceCode(_BROWSER_INIT_JS)
             script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
@@ -158,13 +163,26 @@ class SearchEngine(QObject):
     # ── Public entry point used by the server ──
 
     def search(
-        self, query: str, count: int = 10, timeout: float = 30.0,
+        self, query: str, count: int = 10, timeout: float | None = None,
     ) -> list[dict]:
         """Enqueue a search request and block until results arrive."""
         req = SearchRequest(query, count)
         self._search_queue.put(req)
+        if timeout is None:
+            # Each queued request takes at most hard-timeout + rate-limit
+            # delay; qsize() after put may overcount, the safe direction.
+            per_request = self._search_timeout + 2 * self._search_interval + 1.0
+            timeout = (
+                self._search_queue.qsize() + int(self._current is not None)
+            ) * per_request
         if not req.done.wait(timeout=timeout):
             log.warning("[%s] Search timed out: '%s'", self.engine_name, query)
+        # Decode on the caller thread: sogou's decoder does blocking HTTP
+        # and must not stall the Qt event loop.
+        for i, r in enumerate(req.results, 1):
+            if "link" in r:
+                r["link"] = self._decode_redirect(r["link"])
+            log.info("  [%d] %s | %s", i, r.get("title", ""), r.get("link", ""))
         return req.results
 
     # ── Queue poll + rate limiting ──
@@ -179,6 +197,12 @@ class SearchEngine(QObject):
                     "[%s] Search hard-timeout after %.0fs, aborting",
                     self.engine_name, self._search_timeout,
                 )
+                # Drop the load handler and stop, so a stale loadFinished
+                # cannot kill the next request.
+                if self._load_connected:
+                    self._load_connected = False
+                    self._page.loadFinished.disconnect(self._on_loaded)
+                self._page.triggerAction(QWebEnginePage.WebAction.Stop)
                 self._finish([])
             return
         try:
@@ -211,14 +235,17 @@ class SearchEngine(QObject):
         url = self._build_search_url(self._current.query)
         log.info("[%s] navigate %s", self.engine_name, url)
         page.loadFinished.connect(self._on_loaded)
+        self._load_connected = True
         page.load(QUrl(url))
 
     def _on_loaded(self, ok: bool) -> None:
         self._page.loadFinished.disconnect(self._on_loaded)
+        self._load_connected = False
         if self._current is None:
             return
         if self._page.url().toString() == "about:blank":
             self._page.loadFinished.connect(self._on_loaded)
+            self._load_connected = True
             return
         if not ok:
             log.warning("[%s] Page load failed", self.engine_name)
@@ -260,9 +287,6 @@ class SearchEngine(QObject):
         if self._current is None:
             return
         results = parse_js(data)
-        for r in results:
-            if "link" in r:
-                r["link"] = self._decode_redirect(r["link"])
         count = min(self._current.count, self._max_results())
         self._finish(results[:count])
 
@@ -278,11 +302,6 @@ class SearchEngine(QObject):
             "[%s] Query '%s' -> %d results",
             self.engine_name, req.query, len(results),
         )
-        for i, r in enumerate(results, 1):
-            log.info(
-                "  [%d] %s | %s",
-                i, r.get("title", ""), r.get("link", ""),
-            )
         # Schedule page release after idle timeout.
         if self._idle_timeout > 0:
             self._idle_timer.start(int(self._idle_timeout * 1000))

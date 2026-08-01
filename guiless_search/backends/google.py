@@ -1,4 +1,3 @@
-import json
 import logging
 
 from urllib.parse import parse_qs, quote_plus, unquote, urlparse
@@ -148,15 +147,6 @@ class GoogleEngine(SearchEngine):
             return
         url = self._build_search_url(self._current.query)
         page = self._ensure_page()
-        page.loadFinished.connect(self._on_loaded_after_consent)
+        page.loadFinished.connect(self._on_loaded)
+        self._load_connected = True
         page.load(QUrl(url))
-
-    def _on_loaded_after_consent(self, ok: bool) -> None:
-        self._page.loadFinished.disconnect(self._on_loaded_after_consent)
-        if self._current is None:
-            return
-        if not ok:
-            log.warning("[%s] Page load failed after consent", self.engine_name)
-            self._finish([])
-            return
-        self._start_probe()

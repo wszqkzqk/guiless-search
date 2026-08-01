@@ -3,8 +3,6 @@ import re
 import urllib.request
 from urllib.parse import quote_plus, urlparse
 
-from PySide6.QtWebEngineCore import QWebEngineProfile
-
 from .base import SearchEngine
 from .. import config
 
@@ -45,7 +43,10 @@ _META_REFRESH_RE = re.compile(
 def _decode_sogou_redirect(url: str) -> str:
     try:
         parsed = urlparse(url)
-        if not (parsed.hostname and 'sogou.com' in parsed.hostname and parsed.path == '/link'):
+        host = parsed.hostname or ''
+        if parsed.path != '/link' or not (
+            host == 'sogou.com' or host.endswith('.sogou.com')
+        ):
             return url
         req = urllib.request.Request(url)
         req.add_header('User-Agent', 'Mozilla/5.0')

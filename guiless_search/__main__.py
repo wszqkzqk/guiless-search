@@ -26,14 +26,16 @@ import sys
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ.setdefault(
     "QTWEBENGINE_CHROMIUM_FLAGS",
-    "--disable-gpu --disable-software-rasterizer",
+    "--disable-gpu --disable-software-rasterizer --disable-extensions "
+    "--disable-background-networking --disable-component-update "
+    "--disable-sync --mute-audio",
 )
 
 import argparse
 import logging
 import signal
 import threading
-from http.server import HTTPServer
+from http.server import ThreadingHTTPServer
 
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
@@ -47,6 +49,11 @@ log = logging.getLogger("guiless-search")
 
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
     parser = argparse.ArgumentParser(
         description="GUI-Less Search — Multi-backend headless web search proxy",
     )
@@ -209,7 +216,7 @@ def main():
     SearchHandler.engine_order = engine_order
 
     # ── HTTP server ──
-    server = HTTPServer((config.HOST, config.PORT), SearchHandler)
+    server = ThreadingHTTPServer((config.HOST, config.PORT), SearchHandler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
 
     log.info("Listening on http://%s:%d", config.HOST, config.PORT)

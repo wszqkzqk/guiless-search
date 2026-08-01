@@ -1,9 +1,6 @@
-import json
 import logging
 
 from urllib.parse import parse_qs, quote_plus, unquote, urlparse
-
-from PySide6.QtWebEngineCore import QWebEngineProfile
 
 from .base import SearchEngine
 from .. import config

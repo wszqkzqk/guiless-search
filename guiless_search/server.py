@@ -1,6 +1,5 @@
 import json
 import logging
-import re
 from http.server import BaseHTTPRequestHandler
 
 from . import config
@@ -64,18 +63,26 @@ class SearchHandler(BaseHTTPRequestHandler):
         self._send_json({"jsonrpc": "2.0", "id": request_id, "error": error})
 
     def _read_json_body(self) -> dict | None:
-        length = int(self.headers.get("Content-Length", 0))
-        if length == 0:
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            self._send_json({"error": "invalid Content-Length"}, 400)
+            return None
+        if length <= 0:
             self._send_json({"error": "empty body"}, 400)
             return None
         if length > _MAX_BODY_SIZE:
             self._send_json({"error": "payload too large"}, 413)
             return None
         try:
-            return json.loads(self.rfile.read(length))
+            body = json.loads(self.rfile.read(length))
         except json.JSONDecodeError:
             self._send_json({"error": "invalid JSON"}, 400)
             return None
+        if not isinstance(body, dict):
+            self._send_json({"error": "body must be a JSON object"}, 400)
+            return None
+        return body
 
     # ── MCP tools ──
 
@@ -172,8 +179,15 @@ class SearchHandler(BaseHTTPRequestHandler):
     # ── MCP JSON-RPC dispatch ──
 
     def _handle_mcp(self):
-        length = int(self.headers.get("Content-Length", 0))
-        if length == 0:
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            self._send_mcp_error(
+                None, -32600, "Invalid Request",
+                {"reason": "invalid Content-Length"},
+            )
+            return
+        if length <= 0:
             self._send_mcp_error(
                 None, -32600, "Invalid Request", {"reason": "empty body"},
             )
@@ -300,11 +314,12 @@ class SearchHandler(BaseHTTPRequestHandler):
         if body is None:
             return
 
-        query = body.get("query", "").strip()
-        count = body.get("count", 5)
-        if not query:
+        query = body.get("query")
+        if not isinstance(query, str) or not query.strip():
             self._send_json({"error": "query is required"}, 400)
             return
+        query = query.strip()
+        count = body.get("count", 5)
         if not isinstance(count, int) or count < 1:
             count = 5
         count = min(count, 30)
