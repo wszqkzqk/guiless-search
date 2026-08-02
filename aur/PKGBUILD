@@ -26,6 +26,11 @@ build() {
     python -m build --wheel --no-isolation
 }
 
+check() {
+    cd "${pkgname}"
+    python -m unittest discover -s tests -v
+}
+
 package() {
     cd "${pkgname}"
     python -m installer --destdir="${pkgdir}" dist/*.whl
